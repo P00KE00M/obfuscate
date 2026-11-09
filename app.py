@@ -7,7 +7,6 @@ import zipfile
 import threading
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
-import time
 import datetime
 import random
 import string
@@ -56,7 +55,7 @@ class ObfuscateApp:
         self.jar_path = None
         self.output_path = None
         self.jobs = []
-        self.engine = "ProGuard"  # Default engine
+        self.engine = "ProGuard" 
 
         # Colors
         self.bg = "#070d18"
@@ -71,7 +70,6 @@ class ObfuscateApp:
         self.check_java()
 
     def setup_ui(self):
-        # Sidebar
         sidebar = tk.Frame(self.root, bg="#09101c", width=220, height=650)
         sidebar.pack(side="left", fill="y")
         sidebar.pack_propagate(False)
@@ -121,7 +119,6 @@ class ObfuscateApp:
         self.file_label = tk.Label(left_panel, text="No file selected", bg=self.panel, fg=self.muted, font=("Segoe UI", 9))
         self.file_label.pack()
 
-        # Engine Selection
         engine_frame = tk.Frame(left_panel, bg=self.panel2, padx=15, pady=10)
         engine_frame.pack(fill="x", pady=15)
         tk.Label(engine_frame, text="Protection Engine", bg=self.panel2, fg=self.text, font=("Segoe UI", 9, "bold")).pack(anchor="w")
@@ -149,7 +146,6 @@ class ObfuscateApp:
         self.progress_bar = ttk.Progressbar(self.progress_frame, mode="determinate", length=300)
         self.progress_bar.pack(fill="x", pady=5)
 
-        # Right Panel
         right_panel = tk.Frame(content, bg=self.panel, padx=20, pady=20, width=250, highlightbackground=self.panel2, highlightthickness=1)
         right_panel.pack(side="right", fill="y", padx=(20, 0))
         right_panel.pack_propagate(False)
@@ -230,7 +226,6 @@ class ObfuscateApp:
             final = os.path.join(self.output_path, os.path.basename(self.jar_path).replace(".jar", "-obf.jar"))
 
             if self.engine == "ProGuard":
-                # --- ProGuard Logic (Same as before) ---
                 unpack = os.path.join(tmp, "unpacked")
                 os.makedirs(unpack, exist_ok=True)
 
@@ -254,7 +249,8 @@ class ObfuscateApp:
                         f.write(self.random_name() + "\n")
 
                 self.update_progress("Building rules...", 35)
-                keep_rules = self.build_keep_rules(main_class) + f"\n-obfuscationdictionary {dict_path}"
+                # បន្ថែម -repackageclasses ដើម្បីបំបែក package និងបង្កើនការលាក់
+                keep_rules = self.build_keep_rules(main_class) + f"\n-obfuscationdictionary {dict_path}\n-repackageclasses 'a'\n-overloadaggressively"
                 pro_file = os.path.join(tmp, "keep.pro")
                 with open(pro_file, "w") as f:
                     f.write(keep_rules)
@@ -272,30 +268,26 @@ class ObfuscateApp:
                 self.run_java(cmd)
 
                 self.update_progress("Splitting classes & adding noise...", 80)
+                # បង្កើនចំនួន Dummy Files ដល់ 200
                 with zipfile.ZipFile(obf_out, 'r') as zin:
                     with zipfile.ZipFile(final, 'w') as zout:
                         for item in zin.infolist():
                             zout.writestr(item, zin.read(item.filename))
-                        for i in range(50):
-                            zout.writestr(f"{self.random_name()}.class", b'\xca\xfe\xba\xbe\x00\x00\x00\x34\x00\x01\x07\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00')
+                        for i in range(200): 
+                            zout.writestr(f"a/{self.random_name()}.class", b'\xca\xfe\xba\xbe\x00\x00\x00\x34\x00\x01\x07\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00')
 
             else:
-                # --- Skidfuscator Logic ---
                 self.update_progress("Running Skidfuscator...", 50)
                 skid_jar = self.find_tool("skidfuscator.jar")
                 if not skid_jar:
                     raise RuntimeError("Skidfuscator jar not found! Place 'skidfuscator.jar' next to the app.")
                 
-                # Skidfuscator CLI: java -jar skidfuscator.jar obfuscate <input> --output=<output>
-                # Need to handle libraries. For Spigot, use --libs or --phantom.
                 libs_dir = os.path.join(tmp, "libs")
                 os.makedirs(libs_dir, exist_ok=True)
                 
-                # Using --phantom as a fallback for missing libs (risk of breakage)
                 cmd = ["java", "-jar", skid_jar, "obfuscate", self.jar_path, f"--output={final}", "--phantom", "--notrack"]
                 self.run_java(cmd)
                 
-                # Skidfuscator already outputs to final path. We can skip post-processing if final exists.
                 if not os.path.exists(final):
                     raise RuntimeError("Skidfuscator did not produce an output file.")
 
@@ -320,7 +312,18 @@ class ObfuscateApp:
         self.root.update_idletasks()
 
     def build_keep_rules(self, main_class):
-        lines = ["-keepattributes *Annotation*,Signature,Exceptions,InnerClasses", "-keep public class * extends org.bukkit.plugin.java.JavaPlugin { *; }", "-keep class * implements org.bukkit.event.Listener { *; }", "-keepclassmembers class * { @org.bukkit.event.EventHandler <methods>; }", "-keep class * implements java.io.Serializable { *; }", "-keep enum * { *; }", "-keep class org.bukkit.** { *; }", "-dontwarn **", "-adaptclassstrings", "-adaptresourcefilecontents **.yml,**.txt,**.properties"]
+        lines = [
+            "-keepattributes *Annotation*,Signature,Exceptions,InnerClasses",
+            "-keep public class * extends org.bukkit.plugin.java.JavaPlugin { *; }",
+            "-keep class * implements org.bukkit.event.Listener { *; }",
+            "-keepclassmembers class * { @org.bukkit.event.EventHandler <methods>; }",
+            "-keep class * implements java.io.Serializable { *; }",
+            "-keep enum * { *; }",
+            "-keep class org.bukkit.** { *; }",
+            "-dontwarn **",
+            "-adaptclassstrings",
+            "-adaptresourcefilecontents **.yml,**.txt,**.properties"
+        ]
         if main_class:
             lines.append(f"-keep public class {main_class} {{ *; }}")
         return "\n".join(lines)
