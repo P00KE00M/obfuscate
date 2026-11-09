@@ -56,6 +56,7 @@ class ObfuscateApp:
         self.jar_path = None
         self.output_path = None
         self.jobs = []
+        self.engine = "ProGuard"  # Default engine
 
         # Colors
         self.bg = "#070d18"
@@ -75,12 +76,10 @@ class ObfuscateApp:
         sidebar.pack(side="left", fill="y")
         sidebar.pack_propagate(False)
 
-        # Logo
         tk.Label(sidebar, text="B", bg=self.blue, fg="white", font=("Segoe UI", 16, "bold"), width=3, height=1).place(x=20, y=20)
         tk.Label(sidebar, text="BLUEFORGE", bg="#09101c", fg=self.text, font=("Segoe UI", 12, "bold")).place(x=70, y=22)
         tk.Label(sidebar, text="JAVA PROTECTION", bg="#09101c", fg=self.muted, font=("Segoe UI", 7)).place(x=70, y=42)
 
-        # Nav
         tk.Label(sidebar, text="WORKSPACE", bg="#09101c", fg=self.muted, font=("Segoe UI", 8, "bold")).place(x=20, y=100)
         
         self.nav_obf = tk.Button(sidebar, text="⌘  Obfuscation", bg=self.panel2, fg=self.text, font=("Segoe UI", 10, "bold"), borderwidth=0, anchor="w", padx=15, pady=10)
@@ -89,15 +88,12 @@ class ObfuscateApp:
         self.nav_rec = tk.Button(sidebar, text="◷  Recent", bg="#09101c", fg=self.muted, font=("Segoe UI", 10), borderwidth=0, anchor="w", padx=15, pady=10, command=self.show_recent)
         self.nav_rec.place(x=10, y=165, width=200)
 
-        # Status
         tk.Label(sidebar, text="SYSTEM READY", bg="#09101c", fg="#49e0ae", font=("Segoe UI", 8, "bold")).place(x=20, y=580)
         tk.Label(sidebar, text="Your workspace is ready.", bg="#09101c", fg=self.muted, font=("Segoe UI", 8)).place(x=20, y=600)
 
-        # Main Container
         self.main_frame = tk.Frame(self.root, bg=self.bg)
         self.main_frame.pack(side="right", fill="both", expand=True)
 
-        # Pages
         self.page_obf = tk.Frame(self.main_frame, bg=self.bg)
         self.page_rec = tk.Frame(self.main_frame, bg=self.bg)
         
@@ -107,15 +103,12 @@ class ObfuscateApp:
         self.show_obf()
 
     def setup_obf_page(self):
-        # Header
         tk.Label(self.page_obf, text="Obfuscate your JAR.", bg=self.bg, fg=self.text, font=("Segoe UI", 24, "bold")).pack(anchor="w", padx=30, pady=(30, 5))
-        tk.Label(self.page_obf, text="A clean workspace for your Java projects. Upload an archive, configure your session, and preview the protection workflow.", bg=self.bg, fg=self.muted, font=("Segoe UI", 9), wraplength=550, justify="left").pack(anchor="w", padx=30)
+        tk.Label(self.page_obf, text="Choose your protection engine and upload your project.", bg=self.bg, fg=self.muted, font=("Segoe UI", 9)).pack(anchor="w", padx=30)
 
-        # Content Grid
         content = tk.Frame(self.page_obf, bg=self.bg)
         content.pack(fill="both", expand=True, padx=30, pady=20)
 
-        # Left Panel (Upload)
         left_panel = tk.Frame(content, bg=self.panel, padx=20, pady=20, highlightbackground=self.panel2, highlightthickness=1)
         left_panel.pack(side="left", fill="both", expand=True)
 
@@ -128,21 +121,25 @@ class ObfuscateApp:
         self.file_label = tk.Label(left_panel, text="No file selected", bg=self.panel, fg=self.muted, font=("Segoe UI", 9))
         self.file_label.pack()
 
-        # Options
-        opt_frame = tk.Frame(left_panel, bg=self.panel2, padx=15, pady=10)
-        opt_frame.pack(fill="x", pady=20)
-        tk.Label(opt_frame, text="Enhanced protection preview", bg=self.panel2, fg=self.text, font=("Segoe UI", 9, "bold")).pack(anchor="w")
-        tk.Label(opt_frame, text="Show the advanced protection workflow in this demo", bg=self.panel2, fg=self.muted, font=("Segoe UI", 8)).pack(anchor="w")
+        # Engine Selection
+        engine_frame = tk.Frame(left_panel, bg=self.panel2, padx=15, pady=10)
+        engine_frame.pack(fill="x", pady=15)
+        tk.Label(engine_frame, text="Protection Engine", bg=self.panel2, fg=self.text, font=("Segoe UI", 9, "bold")).pack(anchor="w")
+        
+        self.engine_combo = ttk.Combobox(engine_frame, values=["ProGuard (Stable)", "Skidfuscator (Advanced)"], state="readonly")
+        self.engine_combo.current(0)
+        self.engine_combo.pack(fill="x", pady=5)
+        self.engine_combo.bind("<<ComboboxSelected>>", self.on_engine_change)
+        
+        self.engine_hint = tk.Label(engine_frame, text="Requires proguard.jar next to the app.", bg=self.panel2, fg=self.muted, font=("Segoe UI", 7))
+        self.engine_hint.pack(anchor="w")
 
-        # Output folder
         self.out_btn = ModernButton(left_panel, text="Select Output Folder", command=self.select_output, bg="#173e5b", hover_bg="#1b5c96", width=150, height=35)
         self.out_btn.pack(pady=10)
 
-        # Start Button
         self.start_btn = ModernButton(left_panel, text="Start obfuscation", command=self.start_obfuscate, width=200, height=45)
         self.start_btn.pack(pady=20)
 
-        # Progress
         self.progress_frame = tk.Frame(left_panel, bg=self.panel)
         self.progress_frame.pack(fill="x", pady=10)
         
@@ -152,17 +149,16 @@ class ObfuscateApp:
         self.progress_bar = ttk.Progressbar(self.progress_frame, mode="determinate", length=300)
         self.progress_bar.pack(fill="x", pady=5)
 
-        # Right Panel (Info)
+        # Right Panel
         right_panel = tk.Frame(content, bg=self.panel, padx=20, pady=20, width=250, highlightbackground=self.panel2, highlightthickness=1)
         right_panel.pack(side="right", fill="y", padx=(20, 0))
         right_panel.pack_propagate(False)
 
-        tk.Label(right_panel, text="How it works", bg=self.panel, fg=self.text, font=("Segoe UI", 11, "bold")).pack(anchor="w", pady=(0, 20))
+        tk.Label(right_panel, text="Engine Comparison", bg=self.panel, fg=self.text, font=("Segoe UI", 11, "bold")).pack(anchor="w", pady=(0, 20))
         
         steps = [
-            ("01 — Import archive", "Choose the compiled .jar file from your device."),
-            ("02 — Configure", "Set your preferred options for the preview session."),
-            ("03 — Export result", "Review the simulated output and download the demo result.")
+            ("ProGuard", "Stable, battle-tested. Good for Spigot plugins. Needs Java."),
+            ("Skidfuscator", "Advanced flow obfuscation. Harder to reverse. Needs skidfuscator.jar + Java 8+.")
         ]
         for title, desc in steps:
             f = tk.Frame(right_panel, bg=self.panel)
@@ -170,10 +166,15 @@ class ObfuscateApp:
             tk.Label(f, text=title, bg=self.panel, fg=self.text, font=("Segoe UI", 9, "bold")).pack(anchor="w")
             tk.Label(f, text=desc, bg=self.panel, fg=self.muted, font=("Segoe UI", 8), wraplength=200, justify="left").pack(anchor="w")
 
+    def on_engine_change(self, event):
+        self.engine = "ProGuard" if "ProGuard" in self.engine_combo.get() else "Skidfuscator"
+        if self.engine == "ProGuard":
+            self.engine_hint.config(text="Requires proguard.jar next to the app.")
+        else:
+            self.engine_hint.config(text="Requires skidfuscator.jar next to the app.")
+
     def setup_recent_page(self):
         tk.Label(self.page_rec, text="Recent activity.", bg=self.bg, fg=self.text, font=("Segoe UI", 24, "bold")).pack(anchor="w", padx=30, pady=(30, 5))
-        tk.Label(self.page_rec, text="Keep track of your latest obfuscation sessions.", bg=self.bg, fg=self.muted, font=("Segoe UI", 9)).pack(anchor="w", padx=30)
-        
         self.rec_list = tk.Frame(self.page_rec, bg=self.bg)
         self.rec_list.pack(fill="both", expand=True, padx=30, pady=20)
 
@@ -194,9 +195,7 @@ class ObfuscateApp:
         try:
             subprocess.run(["java", "-version"], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         except (subprocess.CalledProcessError, FileNotFoundError):
-            messagebox.showwarning("Java Not Found", 
-                "Java (JRE) is not installed on this computer!\n\n"
-                "ProGuard needs Java to run. Please install Java 8 or higher.")
+            messagebox.showwarning("Java Not Found", "Java (JRE) is not installed! Please install Java 8 or higher.")
 
     def upload_jar(self):
         path = filedialog.askopenfilename(filetypes=[("JAR files", "*.jar")])
@@ -208,7 +207,6 @@ class ObfuscateApp:
         path = filedialog.askdirectory()
         if path:
             self.output_path = path
-            self.out_btn.text = "Folder Selected"
             self.out_btn.itemconfig(self.out_btn.text_id, text="Folder Selected")
 
     def start_obfuscate(self):
@@ -229,93 +227,92 @@ class ObfuscateApp:
     def run_obfuscate(self):
         try:
             tmp = tempfile.mkdtemp(prefix="obf_")
-            unpack = os.path.join(tmp, "unpacked")
-            os.makedirs(unpack, exist_ok=True)
+            final = os.path.join(self.output_path, os.path.basename(self.jar_path).replace(".jar", "-obf.jar"))
 
-            self.update_progress("Extracting plugin...", 10)
-            with zipfile.ZipFile(self.jar_path, "r") as z:
-                z.extractall(unpack)
+            if self.engine == "ProGuard":
+                # --- ProGuard Logic (Same as before) ---
+                unpack = os.path.join(tmp, "unpacked")
+                os.makedirs(unpack, exist_ok=True)
 
-            plugin_yml = os.path.join(unpack, "plugin.yml")
-            main_class = None
-            if os.path.exists(plugin_yml):
-                with open(plugin_yml, "r", encoding="utf-8", errors="ignore") as f:
-                    for line in f:
-                        if line.strip().startswith("main:"):
-                            main_class = line.split(":", 1)[1].strip()
-                            break
-            
-            # 1. Generate custom dictionary for random names
-            self.update_progress("Generating random names...", 25)
-            dict_path = os.path.join(tmp, "dict.txt")
-            with open(dict_path, "w") as f:
-                for _ in range(500):
-                    f.write(self.random_name() + "\n")
+                self.update_progress("Extracting plugin...", 10)
+                with zipfile.ZipFile(self.jar_path, "r") as z:
+                    z.extractall(unpack)
 
-            # 2. Build rules with String Encryption & Randomization
-            self.update_progress("Building rules...", 35)
-            keep_rules = self.build_keep_rules(main_class)
-            keep_rules += f"\n-obfuscationdictionary {dict_path}"
-            pro_file = os.path.join(tmp, "keep.pro")
-            with open(pro_file, "w") as f:
-                f.write(keep_rules)
-
-            # 3. Run ProGuard
-            self.update_progress("Obfuscating classes...", 60)
-            proguard_jar = self.find_proguard()
-            if not proguard_jar:
-                raise RuntimeError("ProGuard jar not found! The EXE might be corrupted.")
-
-            libs_dir = os.path.join(tmp, "libs")
-            os.makedirs(libs_dir, exist_ok=True)
-            obf_out = os.path.join(tmp, "obf.jar")
-
-            cmd = [
-                "java", "-jar", proguard_jar,
-                "-injars", self.jar_path,
-                "-outjars", obf_out,
-                "-libraryjars", libs_dir,
-                "-include", pro_file,
-                "-dontwarn", "-dontoptimize", "-dontshrink"
-            ]
-            
-            startupinfo = None
-            if os.name == 'nt':
-                startupinfo = subprocess.STARTUPINFO()
-                startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+                plugin_yml = os.path.join(unpack, "plugin.yml")
+                main_class = None
+                if os.path.exists(plugin_yml):
+                    with open(plugin_yml, "r", encoding="utf-8", errors="ignore") as f:
+                        for line in f:
+                            if line.strip().startswith("main:"):
+                                main_class = line.split(":", 1)[1].strip()
+                                break
                 
-            subprocess.run(cmd, check=True, startupinfo=startupinfo)
+                self.update_progress("Generating random names...", 25)
+                dict_path = os.path.join(tmp, "dict.txt")
+                with open(dict_path, "w") as f:
+                    for _ in range(500):
+                        f.write(self.random_name() + "\n")
 
-            # 4. Post-processing: Inject Dummy Classes to increase file count
-            self.update_progress("Splitting classes & adding noise...", 80)
-            final = os.path.join(
-                self.output_path,
-                os.path.basename(self.jar_path).replace(".jar", "-obf.jar")
-            )
-            
-            # Read obfuscated jar and add dummy classes
-            with zipfile.ZipFile(obf_out, 'r') as zin:
-                with zipfile.ZipFile(final, 'w') as zout:
-                    for item in zin.infolist():
-                        zout.writestr(item, zin.read(item.filename))
-                    
-                    # Add dummy files to simulate class splitting
-                    for i in range(50): # Add 50 dummy files
-                        dummy_name = f"{self.random_name()}.class"
-                        dummy_content = b'\xca\xfe\xba\xbe\x00\x00\x00\x34\x00\x01\x07\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
-                        zout.writestr(dummy_name, dummy_content)
+                self.update_progress("Building rules...", 35)
+                keep_rules = self.build_keep_rules(main_class) + f"\n-obfuscationdictionary {dict_path}"
+                pro_file = os.path.join(tmp, "keep.pro")
+                with open(pro_file, "w") as f:
+                    f.write(keep_rules)
+
+                self.update_progress("Obfuscating classes...", 60)
+                proguard_jar = self.find_tool("proguard.jar")
+                if not proguard_jar:
+                    raise RuntimeError("ProGuard jar not found! Place 'proguard.jar' next to the app.")
+
+                libs_dir = os.path.join(tmp, "libs")
+                os.makedirs(libs_dir, exist_ok=True)
+                obf_out = os.path.join(tmp, "obf.jar")
+
+                cmd = ["java", "-jar", proguard_jar, "-injars", self.jar_path, "-outjars", obf_out, "-libraryjars", libs_dir, "-include", pro_file, "-dontwarn", "-dontoptimize", "-dontshrink"]
+                self.run_java(cmd)
+
+                self.update_progress("Splitting classes & adding noise...", 80)
+                with zipfile.ZipFile(obf_out, 'r') as zin:
+                    with zipfile.ZipFile(final, 'w') as zout:
+                        for item in zin.infolist():
+                            zout.writestr(item, zin.read(item.filename))
+                        for i in range(50):
+                            zout.writestr(f"{self.random_name()}.class", b'\xca\xfe\xba\xbe\x00\x00\x00\x34\x00\x01\x07\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00')
+
+            else:
+                # --- Skidfuscator Logic ---
+                self.update_progress("Running Skidfuscator...", 50)
+                skid_jar = self.find_tool("skidfuscator.jar")
+                if not skid_jar:
+                    raise RuntimeError("Skidfuscator jar not found! Place 'skidfuscator.jar' next to the app.")
+                
+                # Skidfuscator CLI: java -jar skidfuscator.jar obfuscate <input> --output=<output>
+                # Need to handle libraries. For Spigot, use --libs or --phantom.
+                libs_dir = os.path.join(tmp, "libs")
+                os.makedirs(libs_dir, exist_ok=True)
+                
+                # Using --phantom as a fallback for missing libs (risk of breakage)
+                cmd = ["java", "-jar", skid_jar, "obfuscate", self.jar_path, f"--output={final}", "--phantom", "--notrack"]
+                self.run_java(cmd)
+                
+                # Skidfuscator already outputs to final path. We can skip post-processing if final exists.
+                if not os.path.exists(final):
+                    raise RuntimeError("Skidfuscator did not produce an output file.")
 
             self.update_progress("Done!", 100)
-            self.jobs.append({
-                "name": os.path.basename(self.jar_path),
-                "output": final,
-                "date": datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
-            })
-            messagebox.showinfo("Success", f"Obfuscated plugin saved to:\n{final}\n\nAdded 50+ random files for extra security.")
+            self.jobs.append({"name": os.path.basename(self.jar_path), "output": final, "date": datetime.datetime.now().strftime("%Y-%m-%d %H:%M")})
+            messagebox.showinfo("Success", f"Obfuscated plugin saved to:\n{final}")
 
         except Exception as e:
             self.progress_label.config(text="Error!")
             messagebox.showerror("Obfuscation failed", str(e))
+
+    def run_java(self, cmd):
+        startupinfo = None
+        if os.name == 'nt':
+            startupinfo = subprocess.STARTUPINFO()
+            startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+        subprocess.run(cmd, check=True, startupinfo=startupinfo)
 
     def update_progress(self, msg, val):
         self.progress_label.config(text=msg)
@@ -323,38 +320,22 @@ class ObfuscateApp:
         self.root.update_idletasks()
 
     def build_keep_rules(self, main_class):
-        lines = [
-            "-keepattributes *Annotation*,Signature,Exceptions,InnerClasses",
-            "-keep public class * extends org.bukkit.plugin.java.JavaPlugin { *; }",
-            "-keep class * implements org.bukkit.event.Listener { *; }",
-            "-keepclassmembers class * { @org.bukkit.event.EventHandler <methods>; }",
-            "-keep class * implements java.io.Serializable { *; }",
-            "-keep enum * { *; }",
-            "-keep class org.bukkit.** { *; }",
-            "-dontwarn **",
-            "-adaptclassstrings",
-            "-adaptresourcefilecontents **.yml,**.txt,**.properties"
-        ]
+        lines = ["-keepattributes *Annotation*,Signature,Exceptions,InnerClasses", "-keep public class * extends org.bukkit.plugin.java.JavaPlugin { *; }", "-keep class * implements org.bukkit.event.Listener { *; }", "-keepclassmembers class * { @org.bukkit.event.EventHandler <methods>; }", "-keep class * implements java.io.Serializable { *; }", "-keep enum * { *; }", "-keep class org.bukkit.** { *; }", "-dontwarn **", "-adaptclassstrings", "-adaptresourcefilecontents **.yml,**.txt,**.properties"]
         if main_class:
             lines.append(f"-keep public class {main_class} {{ *; }}")
         return "\n".join(lines)
 
-    def find_proguard(self):
+    def find_tool(self, tool_name):
         base = getattr(sys, "_MEIPASS", os.path.dirname(os.path.abspath(__file__)))
-        for name in ("proguard.jar", "proguard-7.4.2/lib/proguard.jar", os.path.join("proguard", "proguard.jar")):
-            p = os.path.join(base, name)
-            if os.path.exists(p):
-                return p
-        return None
+        p = os.path.join(base, tool_name)
+        return p if os.path.exists(p) else None
 
     def render_recent(self):
         for w in self.rec_list.winfo_children():
             w.destroy()
-            
         if not self.jobs:
             tk.Label(self.rec_list, text="No sessions yet.", bg=self.bg, fg=self.muted, font=("Segoe UI", 10)).pack(pady=40)
             return
-
         for job in reversed(self.jobs):
             f = tk.Frame(self.rec_list, bg=self.panel, padx=15, pady=15)
             f.pack(fill="x", pady=5)
