@@ -153,8 +153,8 @@ class ObfuscateApp:
         tk.Label(right_panel, text="Extreme Protection", bg=self.panel, fg=self.text, font=("Segoe UI", 11, "bold")).pack(anchor="w", pady=(0, 20))
         
         steps = [
-            ("5000+ Dummy Files", "Injects thousands of fake classes to hide the real ones."),
-            ("Repackaging", "Moves all classes into a single random package."),
+            ("5000+ Dummy Files", "Injects thousands of fake classes into the SAME folder."),
+            ("Repackaging", "Moves all classes into the original package."),
             ("String Encryption", "Obfuscates strings and overloading methods.")
         ]
         for title, desc in steps:
@@ -236,21 +236,32 @@ class ObfuscateApp:
 
                 plugin_yml = os.path.join(unpack, "plugin.yml")
                 main_class = None
+                main_package = ""
+                
                 if os.path.exists(plugin_yml):
                     with open(plugin_yml, "r", encoding="utf-8", errors="ignore") as f:
                         for line in f:
                             if line.strip().startswith("main:"):
-                                main_class = line.split(":", 1)[1].strip()
+                                main_class_full = line.split(":", 1)[1].strip()
+                                main_class = main_class_full
+                                if "." in main_class_full:
+                                    # ទាញយក Package ដើម (ឧ. dev.vanny.DungeonPlugin -> dev/vanny)
+                                    main_package = "/".join(main_class_full.split(".")[:-1])
                                 break
                 
+                # ប្រសិនបើរកមិនឃើញ package សូមដាក់ folder ទំនេរ
+                if not main_package:
+                    main_package = "obf"
+
                 self.update_progress("Generating extreme random names...", 15)
                 dict_path = os.path.join(tmp, "dict.txt")
                 with open(dict_path, "w") as f:
-                    for _ in range(2000): # បង្កើនឈ្មោះចៃដន្យដល់ 2000
+                    for _ in range(2000):
                         f.write(self.random_name() + "\n")
 
                 self.update_progress("Building extreme rules...", 25)
-                keep_rules = self.build_keep_rules(main_class) + f"\n-obfuscationdictionary {dict_path}\n-repackageclasses 'x'\n-overloadaggressively\n-allowaccessmodification"
+                # ប្រើ -keeppackagenames ដើម្បីរក្សា Package ដើម ហើយមិនប្រើ -repackageclasses ទៀតទេ
+                keep_rules = self.build_keep_rules(main_class) + f"\n-obfuscationdictionary {dict_path}\n-overloadaggressively\n-allowaccessmodification\n-keeppackagenames {main_class_full.rsplit('.', 1)[0]}"
                 pro_file = os.path.join(tmp, "keep.pro")
                 with open(pro_file, "w") as f:
                     f.write(keep_rules)
@@ -267,20 +278,18 @@ class ObfuscateApp:
                 cmd = ["java", "-jar", proguard_jar, "-injars", self.jar_path, "-outjars", obf_out, "-libraryjars", libs_dir, "-include", pro_file, "-dontwarn", "-dontoptimize", "-dontshrink"]
                 self.run_java(cmd)
 
-                self.update_progress("Injecting 5000+ dummy files (This may take a moment)...", 60)
+                self.update_progress("Injecting 5000+ dummy files into the same folder...", 60)
                 with zipfile.ZipFile(obf_out, 'r') as zin:
                     with zipfile.ZipFile(final, 'w', compression=zipfile.ZIP_DEFLATED) as zout:
                         for item in zin.infolist():
                             zout.writestr(item, zin.read(item.filename))
                         
-                        # បង្កើត Dummy Files ចំនួន 5000
+                        # បង្កើត Dummy Files ចំនួន 5000 ដាក់ចូល Folder ដើមរបស់ Plugin
                         dummy_bytecode = b'\xca\xfe\xba\xbe\x00\x00\x00\x34\x00\x01\x07\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
                         for i in range(5000):
-                            # ប្រើឈ្មោះចៃដន្យ និងដាក់ក្នុង Folder x (តាម -repackageclasses 'x')
-                            dummy_name = f"x/{self.random_name()}.class"
+                            dummy_name = f"{main_package}/{self.random_name()}.class"
                             zout.writestr(dummy_name, dummy_bytecode)
                             
-                            # Update progress រាល់ 500 File ម្តងដើម្បីកុំឱ្យ UI ค้าง
                             if i % 500 == 0:
                                 self.update_progress(f"Injecting dummy files... ({i}/5000)", 60 + int((i/5000)*35))
 
@@ -301,7 +310,7 @@ class ObfuscateApp:
 
             self.update_progress("Done!", 100)
             self.jobs.append({"name": os.path.basename(self.jar_path), "output": final, "date": datetime.datetime.now().strftime("%Y-%m-%d %H:%M")})
-            messagebox.showinfo("Success", f"Extreme Obfuscation Complete!\nSaved to:\n{final}\n\nAdded 5000+ dummy files for maximum protection.")
+            messagebox.showinfo("Success", f"Extreme Obfuscation Complete!\nSaved to:\n{final}\n\nAdded 5000+ dummy files into the plugin's original package.")
 
         except Exception as e:
             self.progress_label.config(text="Error!")
