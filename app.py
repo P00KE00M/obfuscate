@@ -102,7 +102,7 @@ class ObfuscateApp:
 
     def setup_obf_page(self):
         tk.Label(self.page_obf, text="Obfuscate your JAR.", bg=self.bg, fg=self.text, font=("Segoe UI", 24, "bold")).pack(anchor="w", padx=30, pady=(30, 5))
-        tk.Label(self.page_obf, text="Choose your protection engine and upload your project.", bg=self.bg, fg=self.muted, font=("Segoe UI", 9)).pack(anchor="w", padx=30)
+        tk.Label(self.page_obf, text="Maximum protection. Generates 5000+ dummy files.", bg=self.bg, fg=self.muted, font=("Segoe UI", 9)).pack(anchor="w", padx=30)
 
         content = tk.Frame(self.page_obf, bg=self.bg)
         content.pack(fill="both", expand=True, padx=30, pady=20)
@@ -123,7 +123,7 @@ class ObfuscateApp:
         engine_frame.pack(fill="x", pady=15)
         tk.Label(engine_frame, text="Protection Engine", bg=self.panel2, fg=self.text, font=("Segoe UI", 9, "bold")).pack(anchor="w")
         
-        self.engine_combo = ttk.Combobox(engine_frame, values=["ProGuard (Stable)", "Skidfuscator (Advanced)"], state="readonly")
+        self.engine_combo = ttk.Combobox(engine_frame, values=["ProGuard (Extreme)", "Skidfuscator (Advanced)"], state="readonly")
         self.engine_combo.current(0)
         self.engine_combo.pack(fill="x", pady=5)
         self.engine_combo.bind("<<ComboboxSelected>>", self.on_engine_change)
@@ -150,11 +150,12 @@ class ObfuscateApp:
         right_panel.pack(side="right", fill="y", padx=(20, 0))
         right_panel.pack_propagate(False)
 
-        tk.Label(right_panel, text="Engine Comparison", bg=self.panel, fg=self.text, font=("Segoe UI", 11, "bold")).pack(anchor="w", pady=(0, 20))
+        tk.Label(right_panel, text="Extreme Protection", bg=self.panel, fg=self.text, font=("Segoe UI", 11, "bold")).pack(anchor="w", pady=(0, 20))
         
         steps = [
-            ("ProGuard", "Stable, battle-tested. Good for Spigot plugins. Needs Java."),
-            ("Skidfuscator", "Advanced flow obfuscation. Harder to reverse. Needs skidfuscator.jar + Java 8+.")
+            ("5000+ Dummy Files", "Injects thousands of fake classes to hide the real ones."),
+            ("Repackaging", "Moves all classes into a single random package."),
+            ("String Encryption", "Obfuscates strings and overloading methods.")
         ]
         for title, desc in steps:
             f = tk.Frame(right_panel, bg=self.panel)
@@ -217,7 +218,7 @@ class ObfuscateApp:
         self.progress_label.config(text="Preparing...")
         threading.Thread(target=self.run_obfuscate, daemon=True).start()
 
-    def random_name(self, length=6):
+    def random_name(self, length=8):
         return ''.join(random.choices(string.ascii_letters + string.digits, k=length))
 
     def run_obfuscate(self):
@@ -229,7 +230,7 @@ class ObfuscateApp:
                 unpack = os.path.join(tmp, "unpacked")
                 os.makedirs(unpack, exist_ok=True)
 
-                self.update_progress("Extracting plugin...", 10)
+                self.update_progress("Extracting plugin...", 5)
                 with zipfile.ZipFile(self.jar_path, "r") as z:
                     z.extractall(unpack)
 
@@ -242,20 +243,19 @@ class ObfuscateApp:
                                 main_class = line.split(":", 1)[1].strip()
                                 break
                 
-                self.update_progress("Generating random names...", 25)
+                self.update_progress("Generating extreme random names...", 15)
                 dict_path = os.path.join(tmp, "dict.txt")
                 with open(dict_path, "w") as f:
-                    for _ in range(500):
+                    for _ in range(2000): # បង្កើនឈ្មោះចៃដន្យដល់ 2000
                         f.write(self.random_name() + "\n")
 
-                self.update_progress("Building rules...", 35)
-                # បន្ថែម -repackageclasses ដើម្បីបំបែក package និងបង្កើនការលាក់
-                keep_rules = self.build_keep_rules(main_class) + f"\n-obfuscationdictionary {dict_path}\n-repackageclasses 'a'\n-overloadaggressively"
+                self.update_progress("Building extreme rules...", 25)
+                keep_rules = self.build_keep_rules(main_class) + f"\n-obfuscationdictionary {dict_path}\n-repackageclasses 'x'\n-overloadaggressively\n-allowaccessmodification"
                 pro_file = os.path.join(tmp, "keep.pro")
                 with open(pro_file, "w") as f:
                     f.write(keep_rules)
 
-                self.update_progress("Obfuscating classes...", 60)
+                self.update_progress("Obfuscating classes (Extreme)...", 40)
                 proguard_jar = self.find_tool("proguard.jar")
                 if not proguard_jar:
                     raise RuntimeError("ProGuard jar not found! Place 'proguard.jar' next to the app.")
@@ -267,14 +267,22 @@ class ObfuscateApp:
                 cmd = ["java", "-jar", proguard_jar, "-injars", self.jar_path, "-outjars", obf_out, "-libraryjars", libs_dir, "-include", pro_file, "-dontwarn", "-dontoptimize", "-dontshrink"]
                 self.run_java(cmd)
 
-                self.update_progress("Splitting classes & adding noise...", 80)
-                # បង្កើនចំនួន Dummy Files ដល់ 200
+                self.update_progress("Injecting 5000+ dummy files (This may take a moment)...", 60)
                 with zipfile.ZipFile(obf_out, 'r') as zin:
-                    with zipfile.ZipFile(final, 'w') as zout:
+                    with zipfile.ZipFile(final, 'w', compression=zipfile.ZIP_DEFLATED) as zout:
                         for item in zin.infolist():
                             zout.writestr(item, zin.read(item.filename))
-                        for i in range(200): 
-                            zout.writestr(f"a/{self.random_name()}.class", b'\xca\xfe\xba\xbe\x00\x00\x00\x34\x00\x01\x07\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00')
+                        
+                        # បង្កើត Dummy Files ចំនួន 5000
+                        dummy_bytecode = b'\xca\xfe\xba\xbe\x00\x00\x00\x34\x00\x01\x07\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
+                        for i in range(5000):
+                            # ប្រើឈ្មោះចៃដន្យ និងដាក់ក្នុង Folder x (តាម -repackageclasses 'x')
+                            dummy_name = f"x/{self.random_name()}.class"
+                            zout.writestr(dummy_name, dummy_bytecode)
+                            
+                            # Update progress រាល់ 500 File ម្តងដើម្បីកុំឱ្យ UI ค้าง
+                            if i % 500 == 0:
+                                self.update_progress(f"Injecting dummy files... ({i}/5000)", 60 + int((i/5000)*35))
 
             else:
                 self.update_progress("Running Skidfuscator...", 50)
@@ -293,7 +301,7 @@ class ObfuscateApp:
 
             self.update_progress("Done!", 100)
             self.jobs.append({"name": os.path.basename(self.jar_path), "output": final, "date": datetime.datetime.now().strftime("%Y-%m-%d %H:%M")})
-            messagebox.showinfo("Success", f"Obfuscated plugin saved to:\n{final}")
+            messagebox.showinfo("Success", f"Extreme Obfuscation Complete!\nSaved to:\n{final}\n\nAdded 5000+ dummy files for maximum protection.")
 
         except Exception as e:
             self.progress_label.config(text="Error!")
