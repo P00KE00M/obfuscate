@@ -8,12 +8,11 @@ import threading
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 
-
 class ObfuscateApp:
     def __init__(self, root):
         self.root = root
         self.root.title("Minecraft Plugin Obfuscator")
-        self.root.geometry("620x460")
+        self.root.geometry("620x480")
         self.root.resizable(False, False)
 
         self.jar_path = None
@@ -46,6 +45,17 @@ class ObfuscateApp:
         self.log = tk.Text(root, height=12, state="disabled",
                            bg="#111", fg="#0f0", font=("Consolas", 9))
         self.log.pack(fill="both", expand=True, padx=10, pady=10)
+        
+        self.check_java()
+
+    def check_java(self):
+        try:
+            subprocess.run(["java", "-version"], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        except (subprocess.CalledProcessError, FileNotFoundError):
+            messagebox.showwarning("Java Not Found", 
+                "Java (JRE) is not installed on this computer!\n\n"
+                "ProGuard needs Java to run. Please install Java 8 or higher "
+                "from https://www.java.com/ before using this tool.")
 
     def log_msg(self, msg):
         self.log.config(state="normal")
@@ -103,7 +113,7 @@ class ObfuscateApp:
             self.log_msg("[*] Running ProGuard ...")
             proguard_jar = self.find_proguard()
             if not proguard_jar:
-                raise RuntimeError("ProGuard jar not found. Reinstall the tool.")
+                raise RuntimeError("ProGuard jar not found! The EXE might be corrupted.")
 
             libs_dir = os.path.join(tmp, "libs")
             os.makedirs(libs_dir, exist_ok=True)
@@ -117,7 +127,13 @@ class ObfuscateApp:
                 "-include", pro_file,
                 "-dontwarn", "-dontoptimize", "-dontshrink"
             ]
-            subprocess.run(cmd, check=True)
+            
+            startupinfo = None
+            if os.name == 'nt':
+                startupinfo = subprocess.STARTUPINFO()
+                startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+                
+            subprocess.run(cmd, check=True, startupinfo=startupinfo)
 
             final = os.path.join(
                 self.output_path,
@@ -150,12 +166,11 @@ class ObfuscateApp:
 
     def find_proguard(self):
         base = getattr(sys, "_MEIPASS", os.path.dirname(os.path.abspath(__file__)))
-        for name in ("proguard.jar", "proguard-7.4.2/lib/proguard.jar"):
+        for name in ("proguard.jar", "proguard-7.4.2/lib/proguard.jar", os.path.join("proguard", "proguard.jar")):
             p = os.path.join(base, name)
             if os.path.exists(p):
                 return p
         return None
-
 
 if __name__ == "__main__":
     root = tk.Tk()
