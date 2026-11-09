@@ -22,6 +22,7 @@ class KeVanApp(ctk.CTk):
         self.geometry("1100x750")
         self.minsize(900, 650)
         
+        # Flat Red Theme
         self.bg_color = "#0a0a0a"
         self.panel_color = "#141414"
         self.text_color = "#ffffff"
@@ -41,6 +42,7 @@ class KeVanApp(ctk.CTk):
         self.check_java()
 
     def setup_ui(self):
+        # --- Sidebar ---
         self.sidebar = ctk.CTkFrame(self, width=240, corner_radius=0, fg_color=self.panel_color)
         self.sidebar.pack(side="left", fill="y")
         self.sidebar.pack_propagate(False)
@@ -70,6 +72,7 @@ class KeVanApp(ctk.CTk):
         ctk.CTkLabel(status_frame, text="● SYSTEM READY", font=("Segoe UI", 11, "bold"), text_color=self.success_green).pack(anchor="w")
         ctk.CTkLabel(status_frame, text="KeVan Engine Active.", font=("Segoe UI", 10), text_color=self.muted_text).pack(anchor="w")
 
+        # --- Main Content Area ---
         self.main_frame = ctk.CTkFrame(self, fg_color="transparent")
         self.main_frame.pack(side="right", fill="both", expand=True, padx=30, pady=20)
 
@@ -89,6 +92,7 @@ class KeVanApp(ctk.CTk):
         content = ctk.CTkFrame(self.page_obf, fg_color="transparent")
         content.pack(fill="both", expand=True)
 
+        # Left Panel
         left_panel = ctk.CTkFrame(content, fg_color=self.panel_color, corner_radius=10)
         left_panel.pack(side="left", fill="both", expand=True, padx=(0, 15))
 
@@ -99,9 +103,9 @@ class KeVanApp(ctk.CTk):
         self.lbl_file.pack(pady=(5, 20))
 
         ctk.CTkLabel(left_panel, text="2. Protection Engine", font=("Segoe UI", 15, "bold"), text_color=self.text_color).pack(anchor="w", padx=25, pady=(10, 10))
-        self.combo_engine = ctk.CTkOptionMenu(left_panel, values=["ProGuard (Stable)", "Skidfuscator (Advanced)"], fg_color=self.primary_red, button_color=self.primary_red, button_hover_color=self.primary_red, text_color="#ffffff", font=("Segoe UI", 13), dropdown_font=("Segoe UI", 12), height=40, corner_radius=6, command=self.on_engine_change)
+        self.combo_engine = ctk.CTkOptionMenu(left_panel, values=["ProGuard (Safe & Stable)", "Skidfuscator (Advanced)"], fg_color=self.primary_red, button_color=self.primary_red, button_hover_color=self.primary_red, text_color="#ffffff", font=("Segoe UI", 13), dropdown_font=("Segoe UI", 12), height=40, corner_radius=6, command=self.on_engine_change)
         self.combo_engine.pack(padx=25, fill="x")
-        self.combo_engine.set("ProGuard (Stable)")
+        self.combo_engine.set("ProGuard (Safe & Stable)")
 
         ctk.CTkLabel(left_panel, text="3. Output Destination", font=("Segoe UI", 15, "bold"), text_color=self.text_color).pack(anchor="w", padx=25, pady=(25, 10))
         self.btn_out = ctk.CTkButton(left_panel, text="Select Output Folder", font=("Segoe UI", 13), fg_color="transparent", border_width=1, border_color=self.primary_red, text_color="#ffffff", hover=False, height=40, corner_radius=6, command=self.select_output)
@@ -110,12 +114,14 @@ class KeVanApp(ctk.CTk):
         self.btn_start = ctk.CTkButton(left_panel, text="START OBFUSCATION", font=("Segoe UI", 16, "bold"), fg_color=self.primary_red, text_color="#ffffff", hover=False, height=55, corner_radius=8, command=self.start_obfuscate)
         self.btn_start.pack(padx=25, pady=(10, 30), fill="x")
 
+        # Right Panel
         right_panel = ctk.CTkFrame(content, fg_color=self.panel_color, corner_radius=10, width=450)
         right_panel.pack(side="right", fill="both", expand=True, padx=(15, 0))
         right_panel.pack_propagate(False)
 
         ctk.CTkLabel(right_panel, text="Process Monitor", font=("Segoe UI", 15, "bold"), text_color=self.text_color).pack(anchor="w", padx=25, pady=(25, 15))
 
+        # Progress Bar
         self.prog_frame = ctk.CTkFrame(right_panel, fg_color="transparent")
         self.prog_frame.pack(fill="x", padx=25, pady=10)
         
@@ -128,10 +134,11 @@ class KeVanApp(ctk.CTk):
         self.prog_bar.pack(fill="x", padx=25, pady=(5, 20))
         self.prog_bar.set(0)
 
+        # Console
         ctk.CTkLabel(right_panel, text="Console Output", font=("Segoe UI", 13, "bold"), text_color=self.muted_text).pack(anchor="w", padx=25)
         self.console = ctk.CTkTextbox(right_panel, fg_color=self.console_bg, text_color="#00ff00", font=("Consolas", 12), corner_radius=6, activate_scrollbars=True)
         self.console.pack(fill="both", expand=True, padx=25, pady=(5, 25))
-        self.console.insert("0.0", "KeVanObfuscate Initialized.\nReady to process.\n")
+        self.console.insert("0.0", "KeVanObfuscate Initialized.\nSafe Mode Active.\n")
         self.console.configure(state="disabled")
 
     def setup_rec_page(self):
@@ -214,72 +221,13 @@ class KeVanApp(ctk.CTk):
         self.update_idletasks()
         time.sleep(delay)
 
-    # Function to generate a VALID Java Class bytecode
-    def generate_valid_dummy_class(self, class_name, package_name):
-        # This is a pre-compiled valid empty Java class bytecode template
-        # It has the basic structure (Magic, Version, Constant Pool, etc.)
-        # To make it decompilable, we inject the class name into the constant pool.
-        
-        # For extreme simplicity and to avoid writing a full bytecode compiler in Python,
-        # we use a minimal valid class that just extends java.lang.Object.
-        
-        # This is a hardcoded valid empty class bytecode (compiled from "public class X {}")
-        # We will patch the string table to change the class name.
-        template = bytearray([
-            0xCA, 0xFE, 0xBA, 0xBE, 0x00, 0x00, 0x00, 0x34, # Magic & Version (Java 8)
-            0x00, 0x0A, # Constant pool count
-            # Constant Pool
-            0x0A, 0x00, 0x03, 0x00, 0x07, # 1: Methodref (java/lang/Object.<init>:()V)
-            0x07, 0x00, 0x08, # 2: Class (java/lang/Object)
-            0x07, 0x00, 0x09, # 3: Class (#ClassName)
-            0x01, 0x00, 0x06, 0x3C, 0x69, 0x6E, 0x69, 0x74, 0x3E, # 4: Utf8 "<init>"
-            0x01, 0x00, 0x03, 0x28, 0x29, 0x56, # 5: Utf8 "()V"
-            0x01, 0x00, 0x04, 0x43, 0x6F, 0x64, 0x65, # 6: Utf8 "Code"
-            0x0C, 0x00, 0x04, 0x00, 0x05, # 7: NameAndType (<init>:()V)
-            0x01, 0x00, 0x10, 0x6A, 0x61, 0x76, 0x61, 0x2F, 0x6C, 0x61, 0x6E, 0x67, 0x2F, 0x4F, 0x62, 0x6A, 0x65, 0x63, 0x74, # 8: Utf8 "java/lang/Object"
-            0x01, 0x00, 0x00, # 9: Utf8 "" (Placeholder for class name)
-            0x00, 0x21, # Access flags (public super)
-            0x00, 0x03, # This class
-            0x00, 0x02, # Super class
-            0x00, 0x00, # Interfaces count
-            0x00, 0x00, # Fields count
-            0x00, 0x01, # Methods count
-            0x00, 0x01, 0x00, 0x04, 0x00, 0x05, 0x00, 0x01, 0x00, 0x06, # Method <init>
-            0x00, 0x0D, # Code attribute length
-            0x00, 0x01, 0x00, 0x01, # max_stack=1, max_locals=1
-            0x00, 0x00, 0x00, 0x05, # Code length
-            0x2A, 0xB7, 0x00, 0x01, 0xB1, # aload_0, invokespecial, return
-            0x00, 0x00, 0x00, 0x00, # Attributes count
-            0x00, 0x00 # Class attributes
-        ])
-        
-        # Find the placeholder for class name (index 9, at offset 71)
-        # We need to rewrite the Utf8 entry. The length is 2 bytes.
-        # Current placeholder is length 0, we need to set the actual length.
-        
-        name_bytes = class_name.encode('utf-8')
-        # We need to reconstruct the constant pool carefully.
-        # Easier approach: Use a binary template and modify specific offsets.
-        
-        # Let's build a simpler bytecode. Actually, the easiest way to generate 
-        # a valid class is to use `javac` on the fly, but that requires JDK not JRE.
-        # Assuming JRE is present, we must generate bytecode manually.
-        
-        # To avoid complex binary manipulation in Python, we use a pre-compiled template 
-        # with a long name and pad with nulls, but decompilers might ignore nulls.
-        
-        # BEST APPROACH: Use `proguard`'s library to generate dummy classes? No.
-        # FALLBACK: Just copy a valid real class from the extracted JAR and rename the file.
-        # It will contain duplicate code, but the decompiler WILL show it!
-        pass
-
     def run_obfuscate(self):
         try:
             tmp = tempfile.mkdtemp(prefix="obf_")
             final = os.path.join(self.output_path, os.path.basename(self.jar_path).replace(".jar", "-obf.jar"))
 
             if self.engine == "ProGuard":
-                self.update_progress("Extracting plugin...", 5)
+                self.update_progress("Extracting plugin...", 10)
                 unpack = os.path.join(tmp, "unpacked")
                 os.makedirs(unpack, exist_ok=True)
                 with zipfile.ZipFile(self.jar_path, "r") as z:
@@ -299,99 +247,78 @@ class KeVanApp(ctk.CTk):
                                     main_package = "/".join(main_class_full.split(".")[:-1])
                                 break
                 
-                if not main_package:
-                    main_package = "obf"
-
-                self.update_progress("Generating random obfuscation names...", 15)
+                self.update_progress("Generating random names...", 30)
                 dict_path = os.path.join(tmp, "dict.txt")
                 with open(dict_path, "w") as f:
-                    for _ in range(2000):
+                    for _ in range(1000):
                         f.write(self.random_name() + "\n")
 
-                self.update_progress("Building strict keep rules...", 25)
+                self.update_progress("Building strict safe rules...", 50)
                 
+                # EXTREMELY STRICT KEEP RULES FOR SERVER COMPATIBILITY
                 keep_rules = [
                     "-keepattributes *Annotation*,Signature,Exceptions,InnerClasses,MethodParameters,SourceFile,LineNumberTable",
+                    
+                    # Keep all Bukkit/Spigot core
+                    "-keep class org.bukkit.** { *; }",
+                    "-keep class net.minecraft.** { *; }",
+                    "-keep class com.destroystokyo.** { *; }",
+                    "-keep class io.papermc.** { *; }",
+                    
+                    # Keep Main Class and all its members
+                    f"-keep public class {main_class} {{ *; }}" if main_class else "",
+                    
+                    # Keep Event Listeners, Commands, Config
                     "-keep public class * extends org.bukkit.plugin.java.JavaPlugin { *; }",
                     "-keep class * implements org.bukkit.event.Listener { *; }",
                     "-keepclassmembers class * { @org.bukkit.event.EventHandler <methods>; }",
                     "-keepclassmembers class * { @org.bukkit.command.CommandExecutor <methods>; }",
                     "-keepclassmembers class * { @org.bukkit.command.TabCompleter <methods>; }",
                     "-keep class * implements org.bukkit.configuration.serialization.ConfigurationSerializable { *; }",
+                    
+                    # Keep Enums & Interfaces
                     "-keep enum * { *; }",
                     "-keep interface * { *; }",
-                    "-keep class org.bukkit.** { *; }",
+                    
+                    # Keep other essential stuff
                     "-dontwarn **",
+                    "-dontshrink", # DO NOT SHRINK! Prevents deleting essential code.
+                    "-dontoptimize", # DO NOT OPTIMIZE! Prevents breaking flow.
                     "-adaptclassstrings",
                     "-adaptresourcefilecontents **.yml,**.txt,**.properties,**.json",
                     "-overloadaggressively",
                     "-allowaccessmodification",
-                    f"-keeppackagenames {main_class_full.rsplit('.', 1)[0]}",
                     f"-obfuscationdictionary {dict_path}"
                 ]
                 
-                if main_class:
-                    keep_rules.append(f"-keep public class {main_class} {{ *; }}")
-                    
                 pro_file = os.path.join(tmp, "keep.pro")
                 with open(pro_file, "w") as f:
-                    f.write("\n".join(keep_rules))
+                    f.write("\n".join(filter(None, keep_rules)))
 
-                self.update_progress("Running ProGuard engine...", 40, 0.5)
+                self.update_progress("Running ProGuard engine...", 70, 0.5)
                 proguard_jar = self.find_tool("proguard.jar")
                 if not proguard_jar:
-                    raise RuntimeError("ProGuard jar not found! Place 'proguard.jar' next to the app.")
+                    raise RuntimeError("ProGuard jar not found!")
 
                 libs_dir = os.path.join(tmp, "libs")
                 os.makedirs(libs_dir, exist_ok=True)
-                obf_out = os.path.join(tmp, "obf.jar")
 
-                cmd = ["java", "-jar", proguard_jar, "-injars", self.jar_path, "-outjars", obf_out, "-libraryjars", libs_dir, "-include", pro_file, "-dontoptimize", "-dontshrink"]
+                cmd = ["java", "-jar", proguard_jar, "-injars", self.jar_path, "-outjars", final, "-libraryjars", libs_dir, "-include", pro_file]
                 self.run_java(cmd)
-
-                self.update_progress("Injecting 5000+ dummy files...", 70, 0.5)
-                with zipfile.ZipFile(obf_out, 'r') as zin:
-                    with zipfile.ZipFile(final, 'w', compression=zipfile.ZIP_DEFLATED) as zout:
-                        valid_bytecodes = []
-                        # ដកយក bytecode ពិតប្រាកដពី JAR ដើម្បីធ្វើជាគំរូ (ដើម្បីឱ្យ Decompiler អានចេញ)
-                        for item in zin.infolist():
-                            zout.writestr(item, zin.read(item.filename))
-                            if item.filename.endswith('.class'):
-                                valid_bytecodes.append(zin.read(item.filename))
-                        
-                        if not valid_bytecodes:
-                            valid_bytecodes.append(b'\xca\xfe\xba\xbe\x00\x00\x00\x34\x00\x01\x07\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00')
-                        
-                        for i in range(5000):
-                            dummy_name = f"{main_package}/{self.random_name()}.class"
-                            # ប្រើ Bytecode ពិតប្រាកដពី File ដើម ដើម្បីឱ្យ Website Decompile វា
-                            dummy_content = random.choice(valid_bytecodes)
-                            zout.writestr(dummy_name, dummy_content)
-                            
-                            if i % 1000 == 0 and i > 0:
-                                self.log_console(f"Generated {i} valid dummy files...")
-                                self.prog_bar.set((70 + (i/5000)*20) / 100)
 
             else:
                 self.update_progress("Running Skidfuscator...", 50, 0.5)
                 skid_jar = self.find_tool("skidfuscator.jar")
                 if not skid_jar:
-                    raise RuntimeError("Skidfuscator jar not found! Place 'skidfuscator.jar' next to the app.")
-                
-                libs_dir = os.path.join(tmp, "libs")
-                os.makedirs(libs_dir, exist_ok=True)
+                    raise RuntimeError("Skidfuscator jar not found!")
                 
                 cmd = ["java", "-jar", skid_jar, "obfuscate", self.jar_path, f"--output={final}", "--phantom", "--notrack"]
                 self.run_java(cmd)
-                
-                if not os.path.exists(final):
-                    raise RuntimeError("Skidfuscator did not produce an output file.")
 
-            self.update_progress("Finalizing...", 95, 0.5)
-            self.jobs.append({"name": os.path.basename(self.jar_path), "output": final, "date": datetime.datetime.now().strftime("%Y-%m-%d %H:%M")})
             self.update_progress("Completed Successfully!", 100, 0.5)
+            self.jobs.append({"name": os.path.basename(self.jar_path), "output": final, "date": datetime.datetime.now().strftime("%Y-%m-%d %H:%M")})
             
-            self.after(0, lambda: messagebox.showinfo("Success", f"Obfuscation Complete!\n\nSaved to:\n{final}\n\nYour plugin is now secured with KeVanObfuscate."))
+            self.after(0, lambda: messagebox.showinfo("Success", f"Obfuscation Complete!\n\nSaved to:\n{final}\n\nNote: If using Paper, add -Dpaper.disablePluginRemapping=true to your server startup flags."))
             
         except Exception as e:
             self.lbl_prog_status.configure(text="Error occurred!", text_color=self.primary_red)
