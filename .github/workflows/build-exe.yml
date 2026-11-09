@@ -1,0 +1,38 @@
+name: Build Windows EXE
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Download ProGuard
+        run: |
+          curl -L -o proguard.zip https://github.com/Guardsquare/proguard/releases/download/v7.4.2/proguard-7.4.2.zip
+          powershell -Command "Expand-Archive -Path proguard.zip -DestinationPath ."
+          copy proguard-7.4.2\lib\proguard.jar .
+
+      - name: Build EXE
+        run: pyinstaller --noconfirm build.spec
+
+      - name: Upload EXE
+        uses: actions/upload-artifact@v4
+        with:
+          name: ObfuscateTool-Windows
+          path: dist/ObfuscateTool.exe
