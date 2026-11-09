@@ -5,208 +5,176 @@ import tempfile
 import subprocess
 import zipfile
 import threading
-import tkinter as tk
-from tkinter import filedialog, messagebox, ttk
+import customtkinter as ctk
+from tkinter import filedialog, messagebox
 import datetime
 import random
 import string
 
-class ModernButton(tk.Canvas):
-    def __init__(self, parent, text, command, bg="#1769db", fg="white", hover_bg="#168fda", **kwargs):
-        super().__init__(parent, highlightthickness=0, **kwargs)
-        self.command = command
-        self.bg = bg
-        self.hover_bg = hover_bg
-        self.fg = fg
-        self.text = text
-        self.width = kwargs.get('width', 200)
-        self.height = kwargs.get('height', 40)
-        self.configure(width=self.width, height=self.height, bg=parent['bg'])
+# Set global appearance
+ctk.set_appearance_mode("Dark")
+ctk.set_default_color_theme("blue")
+
+class KeVanApp(ctk.CTk):
+    def __init__(self):
+        super().__init__()
+
+        self.title("KeVanObfuscate")
+        self.geometry("900x650")
+        self.resizable(False, False)
         
-        self.rect = self.create_rounded_rect(0, 0, self.width, self.height, 8, fill=self.bg, outline="")
-        self.text_id = self.create_text(self.width/2, self.height/2, text=self.text, fill=self.fg, font=("Segoe UI", 10, "bold"))
-        
-        self.bind("<Enter>", self.on_enter)
-        self.bind("<Leave>", self.on_leave)
-        self.bind("<Button-1>", self.on_click)
+        # Colors (Flat, No Gradient)
+        self.bg_color = "#0a0f1a"
+        self.panel_color = "#121a2a"
+        self.text_color = "#ffffff"
+        self.muted_text = "#6b7b93"
+        self.primary = "#2962ff"
+        self.success = "#00c853"
+        self.error = "#d50000"
 
-    def create_rounded_rect(self, x1, y1, x2, y2, radius, **kwargs):
-        points = [x1+radius, y1, x1+radius, y1, x2-radius, y1, x2-radius, y1, x2, y1, x2, y1+radius, x2, y1+radius, x2, y2-radius, x2, y2-radius, x2, y2, x2-radius, y2, x2-radius, y2, x1+radius, y2, x1+radius, y2, x1, y2, x1, y2-radius, x1, y2-radius, x1, y1+radius, x1, y1+radius, x1, y1]
-        return self.create_polygon(points, **kwargs, smooth=True)
-
-    def on_enter(self, e):
-        self.itemconfig(self.rect, fill=self.hover_bg)
-
-    def on_leave(self, e):
-        self.itemconfig(self.rect, fill=self.bg)
-
-    def on_click(self, e):
-        if self.command:
-            self.command()
-
-class ObfuscateApp:
-    def __init__(self, root):
-        self.root = root
-        self.root.title("BlueForge - Java Obfuscation")
-        self.root.geometry("900x650")
-        self.root.configure(bg="#070d18")
-        self.root.resizable(False, False)
+        self.configure(fg_color=self.bg_color)
 
         self.jar_path = None
         self.output_path = None
         self.jobs = []
-        self.engine = "ProGuard" 
-
-        # Colors
-        self.bg = "#070d18"
-        self.panel = "#0c1728"
-        self.panel2 = "#101f34"
-        self.text = "#edf5ff"
-        self.muted = "#8192ad"
-        self.blue = "#318cff"
-        self.cyan = "#53d8ff"
+        self.engine = "ProGuard"
+        self.is_running = False
 
         self.setup_ui()
         self.check_java()
 
     def setup_ui(self):
-        sidebar = tk.Frame(self.root, bg="#09101c", width=220, height=650)
-        sidebar.pack(side="left", fill="y")
-        sidebar.pack_propagate(False)
+        # --- Sidebar ---
+        self.sidebar = ctk.CTkFrame(self, width=220, corner_radius=0, fg_color=self.panel_color)
+        self.sidebar.pack(side="left", fill="y")
+        self.sidebar.pack_propagate(False)
 
-        tk.Label(sidebar, text="B", bg=self.blue, fg="white", font=("Segoe UI", 16, "bold"), width=3, height=1).place(x=20, y=20)
-        tk.Label(sidebar, text="BLUEFORGE", bg="#09101c", fg=self.text, font=("Segoe UI", 12, "bold")).place(x=70, y=22)
-        tk.Label(sidebar, text="JAVA PROTECTION", bg="#09101c", fg=self.muted, font=("Segoe UI", 7)).place(x=70, y=42)
+        ctk.CTkLabel(self.sidebar, text="K", font=("Segoe UI", 24, "bold"), text_color=self.primary, width=40, height=40, fg_color="#1a2b4c", corner_radius=8).place(x=20, y=30)
+        ctk.CTkLabel(self.sidebar, text="KeVan", font=("Segoe UI", 18, "bold"), text_color=self.text_color).place(x=70, y=30)
+        ctk.CTkLabel(self.sidebar, text="OBFUSCATE", font=("Segoe UI", 10), text_color=self.muted_text).place(x=70, y=55)
 
-        tk.Label(sidebar, text="WORKSPACE", bg="#09101c", fg=self.muted, font=("Segoe UI", 8, "bold")).place(x=20, y=100)
+        ctk.CTkLabel(self.sidebar, text="WORKSPACE", font=("Segoe UI", 11, "bold"), text_color=self.muted_text).place(x=20, y=120)
         
-        self.nav_obf = tk.Button(sidebar, text="⌘  Obfuscation", bg=self.panel2, fg=self.text, font=("Segoe UI", 10, "bold"), borderwidth=0, anchor="w", padx=15, pady=10)
-        self.nav_obf.place(x=10, y=120, width=200)
+        self.btn_obf = ctk.CTkButton(self.sidebar, text="Obfuscation", fg_color="#1e3a8a", text_color=self.text_color, hover=False, anchor="w", font=("Segoe UI", 13, "bold"), corner_radius=6)
+        self.btn_obf.place(x=15, y=150, width=190, height=40)
         
-        self.nav_rec = tk.Button(sidebar, text="◷  Recent", bg="#09101c", fg=self.muted, font=("Segoe UI", 10), borderwidth=0, anchor="w", padx=15, pady=10, command=self.show_recent)
-        self.nav_rec.place(x=10, y=165, width=200)
+        self.btn_rec = ctk.CTkButton(self.sidebar, text="Recent Activity", fg_color="transparent", text_color=self.muted_text, hover=False, anchor="w", font=("Segoe UI", 13), corner_radius=6, command=self.show_recent)
+        self.btn_rec.place(x=15, y=200, width=190, height=40)
 
-        tk.Label(sidebar, text="SYSTEM READY", bg="#09101c", fg="#49e0ae", font=("Segoe UI", 8, "bold")).place(x=20, y=580)
-        tk.Label(sidebar, text="Your workspace is ready.", bg="#09101c", fg=self.muted, font=("Segoe UI", 8)).place(x=20, y=600)
+        ctk.CTkLabel(self.sidebar, text="SYSTEM READY", font=("Segoe UI", 10, "bold"), text_color=self.success).place(x=20, y=580)
+        ctk.CTkLabel(self.sidebar, text="KeVan Engine Active.", font=("Segoe UI", 10), text_color=self.muted_text).place(x=20, y=600)
 
-        self.main_frame = tk.Frame(self.root, bg=self.bg)
-        self.main_frame.pack(side="right", fill="both", expand=True)
+        # --- Main Content Area ---
+        self.main_frame = ctk.CTkFrame(self, fg_color="transparent")
+        self.main_frame.pack(side="right", fill="both", expand=True, padx=30, pady=20)
 
-        self.page_obf = tk.Frame(self.main_frame, bg=self.bg)
-        self.page_rec = tk.Frame(self.main_frame, bg=self.bg)
-        
+        self.page_obf = ctk.CTkFrame(self.main_frame, fg_color="transparent")
+        self.page_rec = ctk.CTkFrame(self.main_frame, fg_color="transparent")
+
         self.setup_obf_page()
-        self.setup_recent_page()
-        
+        self.setup_rec_page()
         self.show_obf()
 
     def setup_obf_page(self):
-        tk.Label(self.page_obf, text="Obfuscate your JAR.", bg=self.bg, fg=self.text, font=("Segoe UI", 24, "bold")).pack(anchor="w", padx=30, pady=(30, 5))
-        tk.Label(self.page_obf, text="Maximum protection. Generates 5000+ dummy files.", bg=self.bg, fg=self.muted, font=("Segoe UI", 9)).pack(anchor="w", padx=30)
+        ctk.CTkLabel(self.page_obf, text="KeVan Obfuscator", font=("Segoe UI", 28, "bold"), text_color=self.text_color).pack(anchor="w", pady=(10, 5))
+        ctk.CTkLabel(self.page_obf, text="Secure your Java plugins with maximum protection while keeping full functionality.", font=("Segoe UI", 12), text_color=self.muted_text).pack(anchor="w", pady=(0, 20))
 
-        content = tk.Frame(self.page_obf, bg=self.bg)
-        content.pack(fill="both", expand=True, padx=30, pady=20)
+        content = ctk.CTkFrame(self.page_obf, fg_color="transparent")
+        content.pack(fill="both", expand=True)
 
-        left_panel = tk.Frame(content, bg=self.panel, padx=20, pady=20, highlightbackground=self.panel2, highlightthickness=1)
-        left_panel.pack(side="left", fill="both", expand=True)
+        # Left Panel
+        left_panel = ctk.CTkFrame(content, fg_color=self.panel_color, corner_radius=12)
+        left_panel.pack(side="left", fill="both", expand=True, padx=(0, 15))
 
-        tk.Label(left_panel, text="Upload your project", bg=self.panel, fg=self.text, font=("Segoe UI", 11, "bold")).pack(anchor="w")
-        tk.Label(left_panel, text="Select a compiled Java archive to begin", bg=self.panel, fg=self.muted, font=("Segoe UI", 8)).pack(anchor="w", pady=(0, 15))
+        ctk.CTkLabel(left_panel, text="Upload Project", font=("Segoe UI", 14, "bold"), text_color=self.text_color).pack(anchor="w", padx=20, pady=(20, 5))
+        ctk.CTkLabel(left_panel, text="Select a compiled .jar file to begin.", font=("Segoe UI", 11), text_color=self.muted_text).pack(anchor="w", padx=20, pady=(0, 20))
 
-        self.upload_btn = ModernButton(left_panel, text="⇧ Choose JAR file", command=self.upload_jar, width=150, height=35)
-        self.upload_btn.pack(pady=20)
+        self.btn_upload = ctk.CTkButton(left_panel, text="Choose JAR File", font=("Segoe UI", 12, "bold"), fg_color="#1e3a8a", text_color="#ffffff", hover=False, height=40, corner_radius=8, command=self.upload_jar)
+        self.btn_upload.pack(padx=20, pady=10, fill="x")
 
-        self.file_label = tk.Label(left_panel, text="No file selected", bg=self.panel, fg=self.muted, font=("Segoe UI", 9))
-        self.file_label.pack()
+        self.lbl_file = ctk.CTkLabel(left_panel, text="No file selected", font=("Segoe UI", 11), text_color=self.muted_text)
+        self.lbl_file.pack(pady=5)
 
-        engine_frame = tk.Frame(left_panel, bg=self.panel2, padx=15, pady=10)
-        engine_frame.pack(fill="x", pady=15)
-        tk.Label(engine_frame, text="Protection Engine", bg=self.panel2, fg=self.text, font=("Segoe UI", 9, "bold")).pack(anchor="w")
+        # Engine Selection
+        ctk.CTkLabel(left_panel, text="Protection Engine", font=("Segoe UI", 12, "bold"), text_color=self.text_color).pack(anchor="w", padx=20, pady=(20, 5))
+        self.combo_engine = ctk.CTkOptionMenu(left_panel, values=["ProGuard (Stable)", "Skidfuscator (Advanced)"], fg_color="#1e3a8a", button_color="#1e3a8a", button_hover_color="#1e3a8a", text_color="#ffffff", command=self.on_engine_change)
+        self.combo_engine.pack(padx=20, fill="x")
+        self.combo_engine.set("ProGuard (Stable)")
+
+        # Output Folder
+        self.btn_out = ctk.CTkButton(left_panel, text="Select Output Folder", font=("Segoe UI", 12), fg_color="transparent", border_width=1, border_color="#1e3a8a", text_color="#ffffff", hover=False, height=40, corner_radius=8, command=self.select_output)
+        self.btn_out.pack(padx=20, pady=20, fill="x")
+
+        # Start Button
+        self.btn_start = ctk.CTkButton(left_panel, text="Start Obfuscation", font=("Segoe UI", 14, "bold"), fg_color="#2962ff", text_color="#ffffff", hover=False, height=50, corner_radius=8, command=self.start_obfuscate)
+        self.btn_start.pack(padx=20, pady=(0, 20), fill="x")
+
+        # Progress
+        self.lbl_progress = ctk.CTkLabel(left_panel, text="Ready", font=("Segoe UI", 11, "bold"), text_color=self.primary)
+        self.lbl_progress.pack(anchor="w", padx=20)
         
-        self.engine_combo = ttk.Combobox(engine_frame, values=["ProGuard (Extreme)", "Skidfuscator (Advanced)"], state="readonly")
-        self.engine_combo.current(0)
-        self.engine_combo.pack(fill="x", pady=5)
-        self.engine_combo.bind("<<ComboboxSelected>>", self.on_engine_change)
-        
-        self.engine_hint = tk.Label(engine_frame, text="Requires proguard.jar next to the app.", bg=self.panel2, fg=self.muted, font=("Segoe UI", 7))
-        self.engine_hint.pack(anchor="w")
+        self.prog_bar = ctk.CTkProgressBar(left_panel, progress_color=self.primary, fg_color="#0a0f1a")
+        self.prog_bar.pack(padx=20, pady=(5, 20), fill="x")
+        self.prog_bar.set(0)
 
-        self.out_btn = ModernButton(left_panel, text="Select Output Folder", command=self.select_output, bg="#173e5b", hover_bg="#1b5c96", width=150, height=35)
-        self.out_btn.pack(pady=10)
-
-        self.start_btn = ModernButton(left_panel, text="Start obfuscation", command=self.start_obfuscate, width=200, height=45)
-        self.start_btn.pack(pady=20)
-
-        self.progress_frame = tk.Frame(left_panel, bg=self.panel)
-        self.progress_frame.pack(fill="x", pady=10)
-        
-        self.progress_label = tk.Label(self.progress_frame, text="Ready", bg=self.panel, fg=self.cyan, font=("Segoe UI", 9, "bold"))
-        self.progress_label.pack(anchor="w")
-        
-        self.progress_bar = ttk.Progressbar(self.progress_frame, mode="determinate", length=300)
-        self.progress_bar.pack(fill="x", pady=5)
-
-        right_panel = tk.Frame(content, bg=self.panel, padx=20, pady=20, width=250, highlightbackground=self.panel2, highlightthickness=1)
-        right_panel.pack(side="right", fill="y", padx=(20, 0))
+        # Right Panel (Info)
+        right_panel = ctk.CTkFrame(content, fg_color=self.panel_color, corner_radius=12, width=280)
+        right_panel.pack(side="right", fill="y")
         right_panel.pack_propagate(False)
 
-        tk.Label(right_panel, text="Extreme Protection", bg=self.panel, fg=self.text, font=("Segoe UI", 11, "bold")).pack(anchor="w", pady=(0, 20))
+        ctk.CTkLabel(right_panel, text="Safety First", font=("Segoe UI", 14, "bold"), text_color=self.text_color).pack(anchor="w", padx=20, pady=(20, 15))
         
-        steps = [
-            ("5000+ Dummy Files", "Injects thousands of fake classes into the SAME folder."),
-            ("Repackaging", "Moves all classes into the original package."),
-            ("String Encryption", "Obfuscates strings and overloading methods.")
-        ]
-        for title, desc in steps:
-            f = tk.Frame(right_panel, bg=self.panel)
-            f.pack(fill="x", pady=10)
-            tk.Label(f, text=title, bg=self.panel, fg=self.text, font=("Segoe UI", 9, "bold")).pack(anchor="w")
-            tk.Label(f, text=desc, bg=self.panel, fg=self.muted, font=("Segoe UI", 8), wraplength=200, justify="left").pack(anchor="w")
+        info_text = (
+            "• Main Classes & Commands\n"
+            "• @EventHandler Methods\n"
+            "• Configuration Classes\n"
+            "• Bukkit API Hooks\n"
+            "• Enums & Interfaces\n\n"
+            "These rules ensure your plugin runs perfectly on the server without errors."
+        )
+        ctk.CTkLabel(right_panel, text=info_text, font=("Segoe UI", 11), text_color=self.muted_text, justify="left", wraplength=240).pack(anchor="w", padx=20)
 
-    def on_engine_change(self, event):
-        self.engine = "ProGuard" if "ProGuard" in self.engine_combo.get() else "Skidfuscator"
-        if self.engine == "ProGuard":
-            self.engine_hint.config(text="Requires proguard.jar next to the app.")
-        else:
-            self.engine_hint.config(text="Requires skidfuscator.jar next to the app.")
-
-    def setup_recent_page(self):
-        tk.Label(self.page_rec, text="Recent activity.", bg=self.bg, fg=self.text, font=("Segoe UI", 24, "bold")).pack(anchor="w", padx=30, pady=(30, 5))
-        self.rec_list = tk.Frame(self.page_rec, bg=self.bg)
-        self.rec_list.pack(fill="both", expand=True, padx=30, pady=20)
+    def setup_rec_page(self):
+        ctk.CTkLabel(self.page_rec, text="Recent Activity", font=("Segoe UI", 28, "bold"), text_color=self.text_color).pack(anchor="w", pady=(10, 20))
+        self.rec_list = ctk.CTkScrollableFrame(self.page_rec, fg_color="transparent")
+        self.rec_list.pack(fill="both", expand=True)
 
     def show_obf(self):
         self.page_rec.pack_forget()
         self.page_obf.pack(fill="both", expand=True)
-        self.nav_obf.config(bg=self.panel2, fg=self.text)
-        self.nav_rec.config(bg="#09101c", fg=self.muted)
+        self.btn_obf.configure(fg_color="#1e3a8a", text_color=self.text_color)
+        self.btn_rec.configure(fg_color="transparent", text_color=self.muted_text)
 
     def show_recent(self):
         self.page_obf.pack_forget()
         self.page_rec.pack(fill="both", expand=True)
-        self.nav_obf.config(bg="#09101c", fg=self.muted)
-        self.nav_rec.config(bg=self.panel2, fg=self.text)
+        self.btn_obf.configure(fg_color="transparent", text_color=self.muted_text)
+        self.btn_rec.configure(fg_color="#1e3a8a", text_color=self.text_color)
         self.render_recent()
+
+    def on_engine_change(self, choice):
+        self.engine = "ProGuard" if "ProGuard" in choice else "Skidfuscator"
 
     def check_java(self):
         try:
             subprocess.run(["java", "-version"], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         except (subprocess.CalledProcessError, FileNotFoundError):
-            messagebox.showwarning("Java Not Found", "Java (JRE) is not installed! Please install Java 8 or higher.")
+            messagebox.showwarning("Java Not Found", "Java (JRE) is not installed!\nPlease install Java 8 or higher to use this tool.")
 
     def upload_jar(self):
         path = filedialog.askopenfilename(filetypes=[("JAR files", "*.jar")])
         if path:
             self.jar_path = path
-            self.file_label.config(text=f"Selected: {os.path.basename(path)}", fg=self.text)
+            self.lbl_file.configure(text=f"Selected: {os.path.basename(path)}", text_color=self.text_color)
 
     def select_output(self):
         path = filedialog.askdirectory()
         if path:
             self.output_path = path
-            self.out_btn.itemconfig(self.out_btn.text_id, text="Folder Selected")
+            self.btn_out.configure(text="Folder Selected", border_color=self.success)
 
     def start_obfuscate(self):
+        if self.is_running: return
         if not self.jar_path:
             messagebox.showerror("Error", "Please upload a plugin JAR first.")
             return
@@ -214,8 +182,9 @@ class ObfuscateApp:
             messagebox.showerror("Error", "Please select an output folder.")
             return
         
-        self.progress_bar['value'] = 0
-        self.progress_label.config(text="Preparing...")
+        self.is_running = True
+        self.prog_bar.set(0)
+        self.lbl_progress.configure(text="Preparing...", text_color=self.primary)
         threading.Thread(target=self.run_obfuscate, daemon=True).start()
 
     def random_name(self, length=8):
@@ -230,7 +199,7 @@ class ObfuscateApp:
                 unpack = os.path.join(tmp, "unpacked")
                 os.makedirs(unpack, exist_ok=True)
 
-                self.update_progress("Extracting plugin...", 5)
+                self.update_progress("Extracting plugin...", 0.1)
                 with zipfile.ZipFile(self.jar_path, "r") as z:
                     z.extractall(unpack)
 
@@ -245,28 +214,52 @@ class ObfuscateApp:
                                 main_class_full = line.split(":", 1)[1].strip()
                                 main_class = main_class_full
                                 if "." in main_class_full:
-                                    # ទាញយក Package ដើម (ឧ. dev.vanny.DungeonPlugin -> dev/vanny)
                                     main_package = "/".join(main_class_full.split(".")[:-1])
                                 break
                 
-                # ប្រសិនបើរកមិនឃើញ package សូមដាក់ folder ទំនេរ
                 if not main_package:
                     main_package = "obf"
 
-                self.update_progress("Generating extreme random names...", 15)
+                self.update_progress("Generating random names...", 0.2)
                 dict_path = os.path.join(tmp, "dict.txt")
                 with open(dict_path, "w") as f:
                     for _ in range(2000):
                         f.write(self.random_name() + "\n")
 
-                self.update_progress("Building extreme rules...", 25)
-                # ប្រើ -keeppackagenames ដើម្បីរក្សា Package ដើម ហើយមិនប្រើ -repackageclasses ទៀតទេ
-                keep_rules = self.build_keep_rules(main_class) + f"\n-obfuscationdictionary {dict_path}\n-overloadaggressively\n-allowaccessmodification\n-keeppackagenames {main_class_full.rsplit('.', 1)[0]}"
+                self.update_progress("Building strict rules...", 0.3)
+                
+                # STRICT KEEP RULES FOR BUKKIT
+                keep_rules = [
+                    "-keepattributes *Annotation*,Signature,Exceptions,InnerClasses,MethodParameters,SourceFile,LineNumberTable",
+                    "-keep public class * extends org.bukkit.plugin.java.JavaPlugin { *; }",
+                    "-keep class * implements org.bukkit.event.Listener { *; }",
+                    "-keepclassmembers class * { @org.bukkit.event.EventHandler <methods>; }",
+                    "-keepclassmembers class * { @org.bukkit.command.CommandExecutor <methods>; }",
+                    "-keepclassmembers class * { @org.bukkit.command.TabCompleter <methods>; }",
+                    "-keep class * implements org.bukkit.configuration.serialization.ConfigurationSerializable { *; }",
+                    "-keep class * extends org.bukkit.plugin.ServiceProvider { *; }",
+                    "-keep enum * { *; }",
+                    "-keep interface * { *; }",
+                    "-keep class org.bukkit.** { *; }",
+                    "-keep class net.minecraft.** { *; }",
+                    "-keep class com.destroystokyo.** { *; }",
+                    "-dontwarn **",
+                    "-adaptclassstrings",
+                    "-adaptresourcefilecontents **.yml,**.txt,**.properties,**.json",
+                    "-overloadaggressively",
+                    "-allowaccessmodification",
+                    f"-keeppackagenames {main_class_full.rsplit('.', 1)[0]}",
+                    f"-obfuscationdictionary {dict_path}"
+                ]
+                
+                if main_class:
+                    keep_rules.append(f"-keep public class {main_class} {{ *; }}")
+                    
                 pro_file = os.path.join(tmp, "keep.pro")
                 with open(pro_file, "w") as f:
-                    f.write(keep_rules)
+                    f.write("\n".join(keep_rules))
 
-                self.update_progress("Obfuscating classes (Extreme)...", 40)
+                self.update_progress("Obfuscating classes...", 0.5)
                 proguard_jar = self.find_tool("proguard.jar")
                 if not proguard_jar:
                     raise RuntimeError("ProGuard jar not found! Place 'proguard.jar' next to the app.")
@@ -275,26 +268,25 @@ class ObfuscateApp:
                 os.makedirs(libs_dir, exist_ok=True)
                 obf_out = os.path.join(tmp, "obf.jar")
 
-                cmd = ["java", "-jar", proguard_jar, "-injars", self.jar_path, "-outjars", obf_out, "-libraryjars", libs_dir, "-include", pro_file, "-dontwarn", "-dontoptimize", "-dontshrink"]
+                cmd = ["java", "-jar", proguard_jar, "-injars", self.jar_path, "-outjars", obf_out, "-libraryjars", libs_dir, "-include", pro_file, "-dontoptimize", "-dontshrink"]
                 self.run_java(cmd)
 
-                self.update_progress("Injecting 5000+ dummy files into the same folder...", 60)
+                self.update_progress("Injecting 5000+ dummy files...", 0.7)
                 with zipfile.ZipFile(obf_out, 'r') as zin:
                     with zipfile.ZipFile(final, 'w', compression=zipfile.ZIP_DEFLATED) as zout:
                         for item in zin.infolist():
                             zout.writestr(item, zin.read(item.filename))
                         
-                        # បង្កើត Dummy Files ចំនួន 5000 ដាក់ចូល Folder ដើមរបស់ Plugin
                         dummy_bytecode = b'\xca\xfe\xba\xbe\x00\x00\x00\x34\x00\x01\x07\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
                         for i in range(5000):
                             dummy_name = f"{main_package}/{self.random_name()}.class"
                             zout.writestr(dummy_name, dummy_bytecode)
                             
                             if i % 500 == 0:
-                                self.update_progress(f"Injecting dummy files... ({i}/5000)", 60 + int((i/5000)*35))
+                                self.update_progress(f"Injecting noise... ({i}/5000)", 0.7 + ((i/5000)*0.2))
 
             else:
-                self.update_progress("Running Skidfuscator...", 50)
+                self.update_progress("Running Skidfuscator...", 0.5)
                 skid_jar = self.find_tool("skidfuscator.jar")
                 if not skid_jar:
                     raise RuntimeError("Skidfuscator jar not found! Place 'skidfuscator.jar' next to the app.")
@@ -308,13 +300,15 @@ class ObfuscateApp:
                 if not os.path.exists(final):
                     raise RuntimeError("Skidfuscator did not produce an output file.")
 
-            self.update_progress("Done!", 100)
+            self.update_progress("Done!", 1.0)
             self.jobs.append({"name": os.path.basename(self.jar_path), "output": final, "date": datetime.datetime.now().strftime("%Y-%m-%d %H:%M")})
-            messagebox.showinfo("Success", f"Extreme Obfuscation Complete!\nSaved to:\n{final}\n\nAdded 5000+ dummy files into the plugin's original package.")
+            messagebox.showinfo("Success", f"Obfuscation Complete!\nSaved to:\n{final}")
 
         except Exception as e:
-            self.progress_label.config(text="Error!")
+            self.lbl_progress.configure(text="Error!", text_color=self.error)
             messagebox.showerror("Obfuscation failed", str(e))
+        finally:
+            self.is_running = False
 
     def run_java(self, cmd):
         startupinfo = None
@@ -324,26 +318,9 @@ class ObfuscateApp:
         subprocess.run(cmd, check=True, startupinfo=startupinfo)
 
     def update_progress(self, msg, val):
-        self.progress_label.config(text=msg)
-        self.progress_bar['value'] = val
-        self.root.update_idletasks()
-
-    def build_keep_rules(self, main_class):
-        lines = [
-            "-keepattributes *Annotation*,Signature,Exceptions,InnerClasses",
-            "-keep public class * extends org.bukkit.plugin.java.JavaPlugin { *; }",
-            "-keep class * implements org.bukkit.event.Listener { *; }",
-            "-keepclassmembers class * { @org.bukkit.event.EventHandler <methods>; }",
-            "-keep class * implements java.io.Serializable { *; }",
-            "-keep enum * { *; }",
-            "-keep class org.bukkit.** { *; }",
-            "-dontwarn **",
-            "-adaptclassstrings",
-            "-adaptresourcefilecontents **.yml,**.txt,**.properties"
-        ]
-        if main_class:
-            lines.append(f"-keep public class {main_class} {{ *; }}")
-        return "\n".join(lines)
+        self.lbl_progress.configure(text=msg)
+        self.prog_bar.set(val)
+        self.update_idletasks()
 
     def find_tool(self, tool_name):
         base = getattr(sys, "_MEIPASS", os.path.dirname(os.path.abspath(__file__)))
@@ -354,15 +331,14 @@ class ObfuscateApp:
         for w in self.rec_list.winfo_children():
             w.destroy()
         if not self.jobs:
-            tk.Label(self.rec_list, text="No sessions yet.", bg=self.bg, fg=self.muted, font=("Segoe UI", 10)).pack(pady=40)
+            ctk.CTkLabel(self.rec_list, text="No recent sessions.", font=("Segoe UI", 12), text_color=self.muted_text).pack(pady=40)
             return
         for job in reversed(self.jobs):
-            f = tk.Frame(self.rec_list, bg=self.panel, padx=15, pady=15)
-            f.pack(fill="x", pady=5)
-            tk.Label(f, text=job["name"], bg=self.panel, fg=self.text, font=("Segoe UI", 10, "bold")).pack(anchor="w")
-            tk.Label(f, text=f"Saved: {job['output']} | {job['date']}", bg=self.panel, fg=self.muted, font=("Segoe UI", 8)).pack(anchor="w")
+            f = ctk.CTkFrame(self.rec_list, fg_color=self.panel_color, corner_radius=8)
+            f.pack(fill="x", pady=5, padx=5)
+            ctk.CTkLabel(f, text=job["name"], font=("Segoe UI", 12, "bold"), text_color=self.text_color).pack(anchor="w", padx=15, pady=(10, 2))
+            ctk.CTkLabel(f, text=f"Saved: {job['output']} | {job['date']}", font=("Segoe UI", 10), text_color=self.muted_text).pack(anchor="w", padx=15, pady=(0, 10))
 
 if __name__ == "__main__":
-    root = tk.Tk()
-    app = ObfuscateApp(root)
-    root.mainloop()
+    app = KeVanApp()
+    app.mainloop()
