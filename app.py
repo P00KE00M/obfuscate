@@ -21,8 +21,8 @@ class KeVanApp(ctk.CTk):
         super().__init__()
 
         self.title("KeVanObfuscate")
-        self.geometry("1000x700")
-        self.minsize(800, 600)
+        self.geometry("1100x750")
+        self.minsize(900, 650)
         
         # --- FLAT RED THEME ---
         self.bg_color = "#0a0a0a"         # ខ្មៅងងឹត
@@ -30,7 +30,6 @@ class KeVanApp(ctk.CTk):
         self.text_color = "#ffffff"       # ស
         self.muted_text = "#888888"       # ប្រផេះ
         self.primary_red = "#d32f2f"      # ក្រហមចាស់
-        self.hover_red = "#d32f2f"        # ដូចគ្នា (គ្មាន Hover)
         self.success_green = "#2e7d32"    # បៃតងសម្រាប់ Success
         self.console_bg = "#000000"
 
@@ -51,25 +50,34 @@ class KeVanApp(ctk.CTk):
         self.sidebar.pack(side="left", fill="y")
         self.sidebar.pack_propagate(False)
 
+        # Sidebar Content Container
+        side_content = ctk.CTkFrame(self.sidebar, fg_color="transparent")
+        side_content.pack(fill="both", expand=True, padx=20, pady=30)
+
         # Logo/Title
-        ctk.CTkLabel(self.sidebar, text="K", font=("Segoe UI", 24, "bold"), text_color="#ffffff", width=40, height=40, fg_color=self.primary_red, corner_radius=8).place(x=25, y=30)
-        ctk.CTkLabel(self.sidebar, text="KeVan", font=("Segoe UI", 20, "bold"), text_color=self.text_color).place(x=75, y=30)
-        ctk.CTkLabel(self.sidebar, text="OBFUSCATE", font=("Segoe UI", 10, "bold"), text_color=self.muted_text).place(x=75, y=58)
-
-        ctk.CTkLabel(self.sidebar, text="MENU", font=("Segoe UI", 11, "bold"), text_color=self.muted_text).place(x=25, y=120)
+        logo_frame = ctk.CTkFrame(side_content, fg_color="transparent")
+        logo_frame.pack(fill="x", pady=(0, 40))
         
-        self.btn_obf = ctk.CTkButton(self.sidebar, text="  Obfuscation", fg_color=self.primary_red, text_color=self.text_color, hover=False, anchor="w", font=("Segoe UI", 13, "bold"), corner_radius=6, command=self.show_obf)
-        self.btn_obf.place(x=20, y=150, width=200, height=45)
-        
-        self.btn_rec = ctk.CTkButton(self.sidebar, text="  Recent Activity", fg_color="transparent", text_color=self.muted_text, hover=False, anchor="w", font=("Segoe UI", 13), corner_radius=6, command=self.show_recent)
-        self.btn_rec.place(x=20, y=205, width=200, height=45)
+        ctk.CTkLabel(logo_frame, text="K", font=("Segoe UI", 24, "bold"), text_color="#ffffff", width=40, height=40, fg_color=self.primary_red, corner_radius=8).pack(side="left")
+        title_frame = ctk.CTkFrame(logo_frame, fg_color="transparent")
+        title_frame.pack(side="left", padx=10)
+        ctk.CTkLabel(title_frame, text="KeVan", font=("Segoe UI", 20, "bold"), text_color=self.text_color).pack(anchor="w")
+        ctk.CTkLabel(title_frame, text="OBFUSCATE", font=("Segoe UI", 10, "bold"), text_color=self.muted_text).pack(anchor="w")
 
-        # Status Indicator
-        self.status_frame = ctk.CTkFrame(self.sidebar, fg_color="transparent")
-        self.status_frame.pack(side="bottom", fill="x", pady=30, padx=25)
-        self.lbl_status = ctk.CTkLabel(self.status_frame, text="● SYSTEM READY", font=("Segoe UI", 10, "bold"), text_color=self.success_green)
-        self.lbl_status.pack(anchor="w")
-        ctk.CTkLabel(self.status_frame, text="KeVan Engine Active.", font=("Segoe UI", 10), text_color=self.muted_text).pack(anchor="w")
+        # Menu
+        ctk.CTkLabel(side_content, text="MENU", font=("Segoe UI", 11, "bold"), text_color=self.muted_text).pack(anchor="w", pady=(0, 10))
+        
+        self.btn_obf = ctk.CTkButton(side_content, text="  Obfuscation", fg_color=self.primary_red, text_color=self.text_color, hover=False, anchor="w", font=("Segoe UI", 14, "bold"), corner_radius=6, height=45, command=self.show_obf)
+        self.btn_obf.pack(fill="x", pady=5)
+        
+        self.btn_rec = ctk.CTkButton(side_content, text="  Recent Activity", fg_color="transparent", text_color=self.muted_text, hover=False, anchor="w", font=("Segoe UI", 14), corner_radius=6, height=45, command=self.show_recent)
+        self.btn_rec.pack(fill="x", pady=5)
+
+        # Status (Bottom)
+        status_frame = ctk.CTkFrame(side_content, fg_color="transparent")
+        status_frame.pack(side="bottom", fill="x", pady=20)
+        ctk.CTkLabel(status_frame, text="● SYSTEM READY", font=("Segoe UI", 11, "bold"), text_color=self.success_green).pack(anchor="w")
+        ctk.CTkLabel(status_frame, text="KeVan Engine Active.", font=("Segoe UI", 10), text_color=self.muted_text).pack(anchor="w")
 
         # --- Main Content Area ---
         self.main_frame = ctk.CTkFrame(self, fg_color="transparent")
@@ -98,50 +106,50 @@ class KeVanApp(ctk.CTk):
         left_panel.pack(side="left", fill="both", expand=True, padx=(0, 15))
 
         # 1. Upload Section
-        ctk.CTkLabel(left_panel, text="1. Upload Project", font=("Segoe UI", 14, "bold"), text_color=self.text_color).pack(anchor="w", padx=25, pady=(25, 5))
-        self.btn_upload = ctk.CTkButton(left_panel, text="Choose JAR File", font=("Segoe UI", 12, "bold"), fg_color=self.primary_red, hover=False, height=40, corner_radius=6, command=self.upload_jar)
-        self.btn_upload.pack(padx=25, pady=10, fill="x")
-        self.lbl_file = ctk.CTkLabel(left_panel, text="No file selected", font=("Segoe UI", 11), text_color=self.muted_text)
-        self.lbl_file.pack(pady=(0, 15))
+        ctk.CTkLabel(left_panel, text="1. Upload Project", font=("Segoe UI", 15, "bold"), text_color=self.text_color).pack(anchor="w", padx=25, pady=(25, 10))
+        self.btn_upload = ctk.CTkButton(left_panel, text="Choose JAR File", font=("Segoe UI", 13, "bold"), fg_color=self.primary_red, hover=False, height=40, corner_radius=6, command=self.upload_jar)
+        self.btn_upload.pack(padx=25, pady=5, fill="x")
+        self.lbl_file = ctk.CTkLabel(left_panel, text="No file selected", font=("Segoe UI", 12), text_color=self.muted_text)
+        self.lbl_file.pack(pady=(5, 20))
 
         # 2. Engine Section
-        ctk.CTkLabel(left_panel, text="2. Protection Engine", font=("Segoe UI", 14, "bold"), text_color=self.text_color).pack(anchor="w", padx=25, pady=(10, 5))
-        self.combo_engine = ctk.CTkOptionMenu(left_panel, values=["ProGuard (Stable)", "Skidfuscator (Advanced)"], fg_color=self.primary_red, button_color=self.primary_red, button_hover_color=self.primary_red, text_color="#ffffff", font=("Segoe UI", 12), dropdown_font=("Segoe UI", 12), command=self.on_engine_change)
+        ctk.CTkLabel(left_panel, text="2. Protection Engine", font=("Segoe UI", 15, "bold"), text_color=self.text_color).pack(anchor="w", padx=25, pady=(10, 10))
+        self.combo_engine = ctk.CTkOptionMenu(left_panel, values=["ProGuard (Stable)", "Skidfuscator (Advanced)"], fg_color=self.primary_red, button_color=self.primary_red, button_hover_color=self.primary_red, text_color="#ffffff", font=("Segoe UI", 13), dropdown_font=("Segoe UI", 12), height=40, corner_radius=6, command=self.on_engine_change)
         self.combo_engine.pack(padx=25, fill="x")
         self.combo_engine.set("ProGuard (Stable)")
 
         # 3. Output Section
-        ctk.CTkLabel(left_panel, text="3. Output Destination", font=("Segoe UI", 14, "bold"), text_color=self.text_color).pack(anchor="w", padx=25, pady=(20, 5))
-        self.btn_out = ctk.CTkButton(left_panel, text="Select Output Folder", font=("Segoe UI", 12), fg_color="transparent", border_width=1, border_color=self.primary_red, text_color="#ffffff", hover=False, height=40, corner_radius=6, command=self.select_output)
-        self.btn_out.pack(padx=25, pady=(0, 25), fill="x")
+        ctk.CTkLabel(left_panel, text="3. Output Destination", font=("Segoe UI", 15, "bold"), text_color=self.text_color).pack(anchor="w", padx=25, pady=(25, 10))
+        self.btn_out = ctk.CTkButton(left_panel, text="Select Output Folder", font=("Segoe UI", 13), fg_color="transparent", border_width=1, border_color=self.primary_red, text_color="#ffffff", hover=False, height=40, corner_radius=6, command=self.select_output)
+        self.btn_out.pack(padx=25, pady=(0, 30), fill="x")
 
         # Action Button
-        self.btn_start = ctk.CTkButton(left_panel, text="START OBFUSCATION", font=("Segoe UI", 15, "bold"), fg_color=self.primary_red, text_color="#ffffff", hover=False, height=50, corner_radius=8, command=self.start_obfuscate)
-        self.btn_start.pack(padx=25, pady=(10, 25), fill="x")
+        self.btn_start = ctk.CTkButton(left_panel, text="START OBFUSCATION", font=("Segoe UI", 16, "bold"), fg_color=self.primary_red, text_color="#ffffff", hover=False, height=55, corner_radius=8, command=self.start_obfuscate)
+        self.btn_start.pack(padx=25, pady=(10, 30), fill="x")
 
         # Right Panel (Progress & Console)
-        right_panel = ctk.CTkFrame(content, fg_color=self.panel_color, corner_radius=10, width=400)
+        right_panel = ctk.CTkFrame(content, fg_color=self.panel_color, corner_radius=10, width=450)
         right_panel.pack(side="right", fill="both", expand=True, padx=(15, 0))
         right_panel.pack_propagate(False)
 
-        ctk.CTkLabel(right_panel, text="Process Monitor", font=("Segoe UI", 14, "bold"), text_color=self.text_color).pack(anchor="w", padx=25, pady=(25, 15))
+        ctk.CTkLabel(right_panel, text="Process Monitor", font=("Segoe UI", 15, "bold"), text_color=self.text_color).pack(anchor="w", padx=25, pady=(25, 15))
 
         # Progress Bar (1-100%)
         self.prog_frame = ctk.CTkFrame(right_panel, fg_color="transparent")
         self.prog_frame.pack(fill="x", padx=25, pady=10)
         
-        self.lbl_percent = ctk.CTkLabel(self.prog_frame, text="0%", font=("Segoe UI", 12, "bold"), text_color=self.primary_red)
+        self.lbl_percent = ctk.CTkLabel(self.prog_frame, text="0%", font=("Segoe UI", 14, "bold"), text_color=self.primary_red)
         self.lbl_percent.pack(side="right")
-        self.lbl_prog_status = ctk.CTkLabel(self.prog_frame, text="Waiting for input...", font=("Segoe UI", 12), text_color=self.muted_text)
+        self.lbl_prog_status = ctk.CTkLabel(self.prog_frame, text="Waiting for input...", font=("Segoe UI", 13), text_color=self.muted_text)
         self.lbl_prog_status.pack(side="left")
 
-        self.prog_bar = ctk.CTkProgressBar(right_panel, progress_color=self.primary_red, fg_color="#000000", height=10)
+        self.prog_bar = ctk.CTkProgressBar(right_panel, progress_color=self.primary_red, fg_color="#000000", height=12, corner_radius=6)
         self.prog_bar.pack(fill="x", padx=25, pady=(5, 20))
         self.prog_bar.set(0)
 
         # Console Log
-        ctk.CTkLabel(right_panel, text="Console Output", font=("Segoe UI", 12, "bold"), text_color=self.muted_text).pack(anchor="w", padx=25)
-        self.console = ctk.CTkTextbox(right_panel, fg_color=self.console_bg, text_color="#00ff00", font=("Consolas", 11), corner_radius=6, activate_scrollbars=True)
+        ctk.CTkLabel(right_panel, text="Console Output", font=("Segoe UI", 13, "bold"), text_color=self.muted_text).pack(anchor="w", padx=25)
+        self.console = ctk.CTkTextbox(right_panel, fg_color=self.console_bg, text_color="#00ff00", font=("Consolas", 12), corner_radius=6, activate_scrollbars=True)
         self.console.pack(fill="both", expand=True, padx=25, pady=(5, 25))
         self.console.insert("0.0", "KeVanObfuscate Initialized.\nReady to process.\n")
         self.console.configure(state="disabled")
